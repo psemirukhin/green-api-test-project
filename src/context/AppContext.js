@@ -8,6 +8,11 @@ const emptyCredentials = () => ({
   apiTokenInstance: '',
 });
 
+const emptyChat = () => ({
+  chatId: '',
+  phoneNumber: '',
+});
+
 const readStoredCredentials = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -29,12 +34,15 @@ const AppContext = createContext(null);
 
 export function AppProvider({ children }) {
   const [credentials, setCredentialsState] = useState(readStoredCredentials);
+  const [chat, setChatState] = useState(emptyChat);
 
   const isAuthenticated = Boolean(
     credentials.apiUrl &&
       credentials.idInstance &&
       credentials.apiTokenInstance
   );
+
+  const hasChat = Boolean(chat.chatId);
 
   const login = (next) => {
     const value = {
@@ -46,14 +54,35 @@ export function AppProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
   };
 
+  const openChat = ({ chatId, phoneNumber }) => {
+    setChatState({
+      chatId: String(chatId),
+      phoneNumber: String(phoneNumber),
+    });
+  };
+
+  const closeChat = () => {
+    setChatState(emptyChat());
+  };
+
   const logout = () => {
     setCredentialsState(emptyCredentials());
+    setChatState(emptyChat());
     localStorage.removeItem(STORAGE_KEY);
   };
 
   return (
     <AppContext.Provider
-      value={{ credentials, isAuthenticated, login, logout }}
+      value={{
+        credentials,
+        isAuthenticated,
+        chat,
+        hasChat,
+        login,
+        logout,
+        openChat,
+        closeChat,
+      }}
     >
       {children}
     </AppContext.Provider>

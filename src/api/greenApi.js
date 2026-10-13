@@ -7,14 +7,27 @@ export function buildApiUrl(credentials, method) {
   return `${normalizeApiUrl(apiUrl)}/waInstance${idInstance}/${method}/${apiTokenInstance}`;
 }
 
-export async function getStateInstance(credentials) {
-  const response = await fetch(buildApiUrl(credentials, 'getStateInstance'));
-
+async function parseJsonResponse(response, fallbackMessage) {
   if (!response.ok) {
-    const error = new Error('Не удалось проверить данные инстанса');
+    const error = new Error(fallbackMessage);
     error.status = response.status;
     throw error;
   }
 
   return response.json();
+}
+
+export async function getStateInstance(credentials) {
+  const response = await fetch(buildApiUrl(credentials, 'getStateInstance'));
+  return parseJsonResponse(response, 'Не удалось проверить данные инстанса');
+}
+
+export async function checkAccount(credentials, phoneNumber) {
+  const response = await fetch(buildApiUrl(credentials, 'checkAccount'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phoneNumber }),
+  });
+
+  return parseJsonResponse(response, 'Не удалось проверить номер телефона');
 }
