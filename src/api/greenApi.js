@@ -31,3 +31,13 @@ export async function checkAccount(credentials, phoneNumber) {
 
   return parseJsonResponse(response, 'Не удалось проверить номер телефона');
 }
+
+export async function sendMessage(credentials, chatId, message) {
+  const response = await fetch(buildApiUrl(credentials, 'sendMessage'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chatId, message }),
+  });
+
+  return parseJsonResponse(response, 'Не удалось отправить сообщение');
+}
