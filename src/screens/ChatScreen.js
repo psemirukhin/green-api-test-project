@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Box,
@@ -11,7 +11,12 @@ import {
 } from '@mui/material';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import { makeStyles } from '@mui/styles';
-import { sendMessage } from '../api/greenApi';
+import {
+  deleteNotification,
+  getIncomingTextMessage,
+  receiveNotification,
+  sendMessage,
+} from '../api/greenApi';
 import { useApp } from '../context/AppContext';
 
 const useStyles = makeStyles((theme) => ({
@@ -42,15 +47,22 @@ const useStyles = makeStyles((theme) => ({
     flexDirection: 'column',
     gap: theme.spacing(1),
   },
-  bubbleOut: {
-    alignSelf: 'flex-end',
+  bubble: {
     maxWidth: '75%',
     padding: theme.spacing(1, 1.5),
     borderRadius: theme.spacing(1.5),
-    backgroundColor: theme.palette.primary.light,
-    color: theme.palette.primary.contrastText,
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
+  },
+  bubbleOut: {
+    alignSelf: 'flex-end',
+    backgroundColor: theme.palette.primary.light,
+    color: theme.palette.primary.contrastText,
+  },
+  bubbleIn: {
+    alignSelf: 'flex-start',
+    backgroundColor: theme.palette.grey[300],
+    color: theme.palette.text.primary,
   },
   composer: {
     padding: theme.spacing(1.5, 2),
@@ -87,6 +99,8 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export default function ChatScreen() {
   const classes = useStyles();
   const { credentials, chat, closeChat, logout } = useApp();
@@ -95,6 +109,60 @@ export default function ChatScreen() {
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    const poll = async () => {
+      while (active) {
+        try {
+          const notification = await receiveNotification(credentials, {
+            receiveTimeout: 5,
+            signal: controller.signal,
+          });
+
+          if (!active) {
+            break;
+          }
+
+          if (notification?.receiptId == null) {
+            continue;
+          }
+
+          const incoming = getIncomingTextMessage(
+            notification.body,
+            chat.chatId
+          );
+
+          if (incoming) {
+            setMessages((prev) => {
+              if (prev.some((item) => item.id === incoming.id)) {
+                return prev;
+              }
+              return [...prev, incoming];
+            });
+          }
+
+          await deleteNotification(credentials, notification.receiptId, {
+            signal: controller.signal,
+          });
+        } catch (err) {
+          if (!active || err.name === 'AbortError') {
+            break;
+          }
+          await sleep(2000);
+        }
+      }
+    };
+
+    poll();
+
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [credentials, chat.chatId]);
 
   const handleSend = async () => {
     const message = text.trim();
@@ -112,6 +180,7 @@ export default function ChatScreen() {
         {
           id: data.idMessage || `${Date.now()}`,
           text: message,
+          direction: 'out',
         },
       ]);
       setText('');
@@ -154,7 +223,12 @@ export default function ChatScreen() {
           </Typography>
         ) : (
           messages.map((item) => (
-            <Box key={item.id} className={classes.bubbleOut}>
+            <Box
+              key={item.id}
+              className={`${classes.bubble} ${
+                item.direction === 'in' ? classes.bubbleIn : classes.bubbleOut
+              }`}
+            >
               <Typography variant="body1" component="span">
                 {item.text}
               </Typography>

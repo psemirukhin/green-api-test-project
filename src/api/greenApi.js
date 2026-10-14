@@ -41,3 +41,64 @@ export async function sendMessage(credentials, chatId, message) {
 
   return parseJsonResponse(response, 'Не удалось отправить сообщение');
 }
+
+export async function receiveNotification(
+  credentials,
+  { receiveTimeout = 5, signal } = {}
+) {
+  const url = `${buildApiUrl(
+    credentials,
+    'receiveNotification'
+  )}?receiveTimeout=${receiveTimeout}`;
+  const response = await fetch(url, { signal });
+
+  if (!response.ok) {
+    const error = new Error('Не удалось получить уведомление');
+    error.status = response.status;
+    throw error;
+  }
+
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+
+  return JSON.parse(text);
+}
+
+export async function deleteNotification(credentials, receiptId, { signal } = {}) {
+  const response = await fetch(
+    `${buildApiUrl(credentials, 'deleteNotification')}/${receiptId}`,
+    {
+      method: 'DELETE',
+      signal,
+    }
+  );
+
+  return parseJsonResponse(response, 'Не удалось удалить уведомление');
+}
+
+export function getIncomingTextMessage(body, chatId) {
+  if (!body || body.typeWebhook !== 'incomingMessageReceived') {
+    return null;
+  }
+
+  if (body.messageData?.typeMessage !== 'textMessage') {
+    return null;
+  }
+
+  if (String(body.senderData?.chatId) !== String(chatId)) {
+    return null;
+  }
+
+  const text = body.messageData?.textMessageData?.textMessage;
+  if (!text) {
+    return null;
+  }
+
+  return {
+    id: body.idMessage || String(body.timestamp || Date.now()),
+    text,
+    direction: 'in',
+  };
+}
