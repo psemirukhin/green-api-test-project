@@ -44,14 +44,19 @@ export function AppProvider({ children }) {
 
   const hasChat = Boolean(chat.chatId);
 
-  const login = (next) => {
+  const login = (next, { remember = false } = {}) => {
     const value = {
       apiUrl: next.apiUrl.trim().replace(/\/+$/, ''),
       idInstance: next.idInstance.trim(),
       apiTokenInstance: next.apiTokenInstance.trim(),
     };
     setCredentialsState(value);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+
+    if (remember) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   };
 
   const openChat = ({ chatId, phoneNumber }) => {

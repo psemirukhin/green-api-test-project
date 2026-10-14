@@ -3,7 +3,9 @@ import {
   Alert,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
+  FormControlLabel,
   Paper,
   TextField,
   Typography,
@@ -29,6 +31,9 @@ const useStyles = makeStyles((theme) => ({
     flexDirection: 'column',
     gap: theme.spacing(2),
   },
+  remember: {
+    marginTop: theme.spacing(-0.5),
+  },
   submit: {
     marginTop: theme.spacing(1),
   },
@@ -50,6 +55,7 @@ export default function LoginScreen() {
   const [apiUrl, setApiUrl] = useState('');
   const [idInstance, setIdInstance] = useState('');
   const [apiTokenInstance, setApiTokenInstance] = useState('');
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -79,7 +85,7 @@ export default function LoginScreen() {
       const state = data.stateInstance;
 
       if (state === 'authorized' || state === 'suspended') {
-        login(credentials);
+        login(credentials, { remember });
         return;
       }
 
@@ -132,6 +138,17 @@ export default function LoginScreen() {
           fullWidth
           autoComplete="current-password"
           disabled={loading}
+        />
+        <FormControlLabel
+          className={classes.remember}
+          control={
+            <Checkbox
+              checked={remember}
+              onChange={(event) => setRemember(event.target.checked)}
+              disabled={loading}
+            />
+          }
+          label="Запомнить"
         />
         <Button
           className={classes.submit}
