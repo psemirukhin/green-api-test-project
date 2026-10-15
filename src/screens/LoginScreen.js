@@ -117,7 +117,7 @@ export default function LoginScreen() {
           label="apiUrl"
           value={apiUrl}
           onChange={(event) => setApiUrl(event.target.value)}
-          placeholder="https://3100.api.green-api.com"
+          placeholder="https://api.green-api.com"
           fullWidth
           autoComplete="url"
           disabled={loading}
